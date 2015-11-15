@@ -1,6 +1,8 @@
 package com.example.giuliozhou.tourintopicture;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -13,6 +15,7 @@ import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
@@ -123,5 +126,38 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("YOLO " + requestCode + " " + resultCode);
+        System.out.println(data.getData());
+        if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
+            Uri selectedImage = data.getData();
+            Intent ImageLabelIntent = new Intent(this, ImageLabelActivity.class);
+            ImageLabelIntent.putExtra("filename", selectedImage.toString());
+            startActivity(ImageLabelIntent);
+
+            /*
+            String[] filePathColumn = { MediaStore.Images.Media.DATA };
+            Cursor cursor = getContentResolver().query(selectedImage, filePathColumn, null, null, null);
+            cursor.moveToFirst();
+
+            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+            String picturePath = cursor.getString(columnIndex);
+            cursor.close();
+
+            ImageView imageView = (ImageView) findViewById(R.id.img);
+            imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath)); */
+        }
+    }
+
+    private Intent startImageLabelIntent(File inputImage) {
+        /* Create a new intent for image point labeling and start it with the relevant photo */
+        Intent ImageLabelIntent = new Intent(this, ImageLabelActivity.class);
+        ImageView imageView = (ImageView) findViewById(R.id.img);
+        startActivity(ImageLabelIntent);
+        return ImageLabelIntent;
     }
 }
