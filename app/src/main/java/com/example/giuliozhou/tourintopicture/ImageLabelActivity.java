@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import java.util.ArrayList;
 
@@ -49,7 +50,12 @@ public class ImageLabelActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Intent i = new Intent();
                 System.out.println("Bitmap size: " + currBitmap.getWidth() + " " + currBitmap.getHeight());
-                float[][][] imgTextures = processWalls();
+                ProgressBar spinner = (ProgressBar) findViewById(R.id.spinner);
+                spinner.setVisibility(View.VISIBLE);
+                Bitmap[] imgTextures = processWalls();
+                // imageSelectionView.setImageBitmap(imgTextures[4]);
+                // imageSelectionView.setImageBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.berkeley));
+                // imageSelectionView.invalidate();
                 // startActivity(i);
                 // System.out.println
             }
@@ -71,6 +77,7 @@ public class ImageLabelActivity extends AppCompatActivity {
         imageview.setImageBitmap(imageBitmap);
         selectionPoints = new ArrayList<SelectionPoint>();
         imageview.selectionPoints = selectionPoints;
+        imageview.srcImage = imageBitmap;
         imageSelectionView = imageview;
         currBitmap = imageBitmap;
 
@@ -115,119 +122,125 @@ public class ImageLabelActivity extends AppCompatActivity {
         selectionPoints.add(sample3);
 
         /* Add in four points to get the four corners as a hack */
-        RelativeLayout.LayoutParams sample4Layout = new RelativeLayout.LayoutParams(120,120);
-        RelativeLayout.LayoutParams sample5Layout = new RelativeLayout.LayoutParams(120,120);
-        SelectionPoint sample4 = new SelectionPoint(this, 140, 40);
-        SelectionPoint sample5 = new SelectionPoint(this, 180, 80);
-        sample4Layout.leftMargin = 140;
-        sample4Layout.topMargin = 40;
-        sample5Layout.leftMargin = 180;
-        sample5Layout.topMargin = 80;
-        sample4.setLayoutParams(sample4Layout);
-        sample5.setLayoutParams(sample5Layout);
-        sample4.setImageResource(R.drawable.green_dot);
-        sample5.setImageResource(R.drawable.green_dot);
-        sample4.imageview = imageview;
-        sample5.imageview = imageview;
-        rl.addView(sample4);
-        rl.addView(sample5);
+        SelectionPoint sample4 = new SelectionPoint(this, 0, 0);
+        SelectionPoint sample5 = new SelectionPoint(this, 0, 0);
         selectionPoints.add(sample4);
         selectionPoints.add(sample5);
     }
 
-    float[][][] processWalls() {
+    Bitmap[] processWalls() {
         int imgWidth = currBitmap.getWidth();
         int imgHeight = currBitmap.getHeight();
         int buffer_size = 512;
         /* Map across all five rectangles */
-        float[][][] toReturn = new float[5][buffer_size][buffer_size];
+        Bitmap[] toReturn = new Bitmap[5];
         SelectionPoint centerTopLeft = selectionPoints.get(0);
         SelectionPoint vanishingPoint = selectionPoints.get(1);
         SelectionPoint centerBottomRight = selectionPoints.get(2);
         SelectionPoint imageTopLeft = selectionPoints.get(3);
         SelectionPoint imageBottomRight = selectionPoints.get(4);
 
+        int[] coordinates = new int[2];
+        imageSelectionView.getLocationOnScreen(coordinates);
+        System.out.println("View coords: " + coordinates[0] + " " + coordinates[1] +
+                " " + imageSelectionView.getRight() + " " + imageSelectionView.getBottom());
+        System.out.println("Original coords: " + imageTopLeft.lastX + " " + imageTopLeft.lastY +
+                " " + imageBottomRight.lastX + " " + imageBottomRight.lastY);
+        imageTopLeft.lastX = coordinates[0];
+        imageTopLeft.lastY = coordinates[1];
+        imageBottomRight.lastX = imageTopLeft.lastX + imageSelectionView.getWidth();
+        imageBottomRight.lastY =
+            imageTopLeft.lastY + (imgHeight * imageSelectionView.getWidth())/imgWidth;
+        System.out.println("Absolute coords: " + imageTopLeft.lastX + " " + imageTopLeft.lastY +
+                " " + imageBottomRight.lastX + " " + imageBottomRight.lastY);
+        System.out.println("Center coords: " + centerTopLeft.lastX + " " + centerTopLeft.lastY +
+                " " + centerBottomRight.lastX + " " + centerBottomRight.lastY);
+        int centerTopLeftX = (int) (imgWidth * (centerTopLeft.lastX - imageTopLeft.lastX) /
+                (imageBottomRight.lastX - imageTopLeft.lastX));
+        int centerTopLeftY = (int) (imgHeight * (centerTopLeft.lastY - imageTopLeft.lastY) /
+                (imageBottomRight.lastY - imageTopLeft.lastY));
+        int centerBottomRightX = (int) (imgWidth * (centerBottomRight.lastX - imageTopLeft.lastX) /
+                (imageBottomRight.lastX - imageTopLeft.lastX));
+        int centerBottomRightY = (int) (imgHeight * (centerBottomRight.lastY - imageTopLeft.lastY) /
+                (imageBottomRight.lastY - imageTopLeft.lastY));
+        float slope1 = (vanishingPoint.point.y - centerTopLeft.point.y) / (vanishingPoint.point.x - centerTopLeft.point.x);
+        float slope2 = (vanishingPoint.point.y - centerBottomRight.point.y) / (vanishingPoint.point.x - centerTopLeft.point.x);
+        float slope3 = (centerTopLeft.point.y - vanishingPoint.point.y) / (centerBottomRight.point.x - vanishingPoint.point.x );
+        float slope4 = (centerBottomRight.point.y - vanishingPoint.point.y) / (centerBottomRight.point.x - vanishingPoint.point.x);
+
         /* Center */
-        float[][] center = toReturn[0];
-        int currTopLeftX = (int) (imgWidth * (centerTopLeft.point.x - imageTopLeft.point.x) /
-                                 (imageBottomRight.point.x - imageTopLeft.point.x));
-        int currTopLeftY = (int) (imgHeight * (centerTopLeft.point.y - imageTopLeft.point.y) /
-                                 (imageBottomRight.point.y - imageTopLeft.point.y));
-        int currBottomRightX = (int) (imgWidth * (centerBottomRight.point.x - imageTopLeft.point.x) /
-                                     (imageBottomRight.point.x - imageTopLeft.point.x));
-        int currBottomRightY = (int) (imgHeight * (centerBottomRight.point.y - imageTopLeft.point.y) /
-                                     (imageBottomRight.point.y - imageTopLeft.point.y));
+        Bitmap center = Bitmap.createBitmap(buffer_size, buffer_size, Bitmap.Config.ARGB_8888);
+        System.out.println("Stuff: " + imgHeight + " " + imgWidth);
+        System.out.println("Values: " + centerTopLeftX + " " + centerTopLeftY + " " + centerBottomRightX + " " + centerBottomRightY);
+        System.out.println("Values: " + imgHeight + " " + (centerBottomRight.lastY - imageTopLeft.lastY) + " " + (imageBottomRight.lastY - imageTopLeft.lastY));
         for (int i = 0; i < buffer_size; i++) {
             for (int j = 0; j < buffer_size; j++) {
-                int currX = currTopLeftX + (i * (currBottomRightX - currTopLeftX)) / buffer_size;
-                int currY = currTopLeftY + (j * (currBottomRightY - currTopLeftY)) / buffer_size;
-                center[i][j] = currBitmap.getPixel(currX, currY);
+                int currX = centerTopLeftX + (i * (centerBottomRightX - centerTopLeftX)) / buffer_size;
+                int currY = centerTopLeftY + (j * (centerBottomRightY - centerTopLeftY)) / buffer_size;
+                // System.out.println("Looking up: " + currX + " " + currY + " " + i + " " + j);
+                center.setPixel(i, j, currBitmap.getPixel(currX, currY));
+                int value = currBitmap.getPixel(currX, currY);
+                // System.out.println((value & 255) + " " + ((value >> 8) & 255) + " " + ((value >> 16) & 255) + " " + ((value >> 24) & 255));
             }
         }
+        toReturn[0] = center;
 
         /* Up */
-        currTopLeftX = (int) (imgWidth * (centerTopLeft.point.x - imageTopLeft.point.x) /
-                             (imageBottomRight.point.x - imageTopLeft.point.x));
-        currTopLeftY = (int) (imgHeight * (centerTopLeft.point.y - imageTopLeft.point.y) /
-                             (imageBottomRight.point.y - imageTopLeft.point.y));
-        currBottomRightX = (int) (imgWidth * (centerBottomRight.point.x - imageTopLeft.point.x) /
-                                 (imageBottomRight.point.x - imageTopLeft.point.x));
-        currBottomRightY = (int) (imgHeight * (centerBottomRight.point.y - imageTopLeft.point.y) /
-                                 (imageBottomRight.point.y - imageTopLeft.point.y));
-        float[][] up = toReturn[1];
+        Bitmap up = Bitmap.createBitmap(buffer_size, buffer_size, Bitmap.Config.ARGB_8888);
         for (int i = 0; i < buffer_size; i++) {
             for (int j = 0; j < buffer_size; j++) {
-                up[i][j] = currBitmap.getPixel(i, j);
+                int currY = (j * centerTopLeftY) / buffer_size;
+                int leftX = (int) Math.max(0, centerTopLeftX - (currY / slope1));
+                int rightX = (int) Math.min(imgWidth - 1, centerBottomRightX -
+                                                          (centerTopLeftY - currY) / slope2);
+                int currX = leftX + (i*(rightX - leftX) / buffer_size);
+                up.setPixel(i, j, currBitmap.getPixel(currX, currY));
             }
         }
+        toReturn[1] = up;
 
         /* Down */
-        float[][] down = toReturn[2];
+        Bitmap down = Bitmap.createBitmap(buffer_size, buffer_size, Bitmap.Config.ARGB_8888);
         for (int i = 0; i < buffer_size; i++) {
             for (int j = 0; j < buffer_size; j++) {
-                down[i][j] = currBitmap.getPixel(i, j);
+                int currY = centerBottomRightY + (j * (imgHeight - centerBottomRightY) / buffer_size);
+                int leftX = (int) Math.max(0, centerTopLeftX + (currY - centerBottomRightY) / slope3);
+                int rightX = (int) Math.min(imgWidth - 1, centerBottomRightX +
+                                                          (currY - centerBottomRightY) / slope4);
+                int currX = leftX + (i*(rightX - leftX) / buffer_size);
+                down.setPixel(i, j, currBitmap.getPixel(currX, currY));
             }
         }
+        toReturn[2] = down;
 
         /* Left */
-        float[][] left = toReturn[3];
+        Bitmap left = Bitmap.createBitmap(buffer_size, buffer_size, Bitmap.Config.ARGB_8888);
         for (int i = 0; i < buffer_size; i++) {
             for (int j = 0; j < buffer_size; j++) {
-                left[i][j] = currBitmap.getPixel(i, j);
+                int currX = (i * centerTopLeftX) / buffer_size;
+                int topY = (int) Math.max(0, centerTopLeftY - currX*slope1);
+                int bottomY = (int) Math.min(imgHeight - 1, centerBottomRightY +
+                                                            (centerTopLeftX - currX)*slope3);
+                int currY = topY + (j*(bottomY - topY) / buffer_size);
+                left.setPixel(i, j, currBitmap.getPixel(currX, currY));
             }
         }
+        toReturn[3] = left;
 
         /* Right */
-        float[][] right = toReturn[4];
+        Bitmap right = Bitmap.createBitmap(buffer_size, buffer_size, Bitmap.Config.ARGB_8888);
         for (int i = 0; i < buffer_size; i++) {
             for (int j = 0; j < buffer_size; j++) {
-                right[i][j] = currBitmap.getPixel(i, j);
+                int currX = centerBottomRightX + (i * (imgWidth - centerBottomRightX) / buffer_size);
+                int topY = (int) Math.max(0, centerTopLeftY + (currX - centerBottomRightX) * slope2);
+                int bottomY = (int) Math.min(imgHeight - 1, centerBottomRightY +
+                                                            (currX - centerBottomRightX)*slope4);
+                int currY = topY + (j*(bottomY - topY) / buffer_size);
+                right.setPixel(i, j, currBitmap.getPixel(currX, currY));
             }
         }
+        toReturn[4] = right;
 
-        return toReturn;
-    }
-
-    /* Points are given to represent a quadrilateral
-       clockwise from the top left corner
-     */
-    float[] selectRelevantPoints(SelectionPoint topLeft, SelectionPoint topRight,
-                                 SelectionPoint bottomRight, SelectionPoint bottomLeft) {
-        ArrayList<PointF> listOfPoints = new ArrayList<PointF>();
-        for (int i = 0; i < 500; i++) {
-            for (int j = 0; j < 500; j++) {
-                float slope1 = (topRight.point.y - topLeft.point.y) / (topRight.point.x - topLeft.point.x);
-                float slope2 = (bottomRight.point.y - bottomLeft.point.y) / (bottomRight.point.x - bottomLeft.point.x);
-                float slope3 = (topLeft.point.y - bottomLeft.point.y) / (topLeft.point.x - bottomLeft.point.x);
-                float slope4 = (topRight.point.y - bottomRight.point.y) / (topRight.point.x - bottomRight.point.x);
-
-                if (j <= slope1*i && j > slope2*i &&
-                        i > slope2) {
-                    listOfPoints.add(new PointF(i, j));
-                }
-            }
-        }
-        float[] toReturn = new float[500];
         return toReturn;
     }
 }

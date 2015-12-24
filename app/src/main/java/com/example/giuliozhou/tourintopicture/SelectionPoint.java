@@ -74,7 +74,7 @@ public class SelectionPoint extends ImageView {
     public boolean onTouchEvent(MotionEvent ev) {
         final int action = ev.getActionMasked();
         RelativeLayout.LayoutParams mParams = (RelativeLayout.LayoutParams) getLayoutParams();
-        System.out.println("MARGINS: " + getPaddingLeft() + " " + getLeftPaddingOffset());
+        // System.out.println("MARGINS: " + getPaddingLeft() + " " + getLeftPaddingOffset());
         // ImageSelectView imageview = (ImageSelectView) findViewById(R.id.img);
         switch (action) {
             case (MotionEvent.ACTION_DOWN):
@@ -84,9 +84,9 @@ public class SelectionPoint extends ImageView {
                 break;
             case (MotionEvent.ACTION_MOVE):
                 if (isDrawing) {
-                    System.out.println(ev.getRawX() + " " + ev.getRawY());
-                    System.out.println(mParams.leftMargin + " " + mParams.topMargin);
-                    System.out.println(getLeftPaddingOffset() + " " + getTopPaddingOffset());
+                    System.out.println("Raw: " + ev.getRawX() + " " + ev.getRawY());
+                    System.out.println("Margins: " + mParams.leftMargin + " " + mParams.topMargin);
+                    System.out.println("Padding: " + getLeftPaddingOffset() + " " + getTopPaddingOffset());
                     point.x += ev.getRawX() - lastX;
                     point.y += ev.getRawY() - lastY;
                     mParams.leftMargin = (int) (point.x - imageSizeOffset);

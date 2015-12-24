@@ -1,6 +1,7 @@
 package com.example.giuliozhou.tourintopicture;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
  */
 public class ImageSelectView extends ImageView {
     ArrayList<SelectionPoint> selectionPoints;
+    Bitmap srcImage;
     Paint paint;
 
     public ImageSelectView(Context context) {
@@ -73,8 +75,9 @@ public class ImageSelectView extends ImageView {
         getLocationOnScreen(topLeftCoordinates);
         int topLeftX = topLeftCoordinates[0];
         int topLeftY = topLeftCoordinates[1];
-        int bottomRightX = getRight();
-        int bottomRightY = getBottom();
+        int bottomRightX = topLeftX + getWidth();
+        int bottomRightY = (srcImage.getHeight() * getWidth()) / srcImage.getWidth();
+        System.out.println("YEE: " + bottomRightY + " " + srcImage.getHeight() + " " + getWidth() + " " + srcImage.getWidth());
         System.out.println(topLeftX + " " + topLeftY + " " + getLeft() + " " + getTop() + " " + getBottom());
         getLocationInWindow(topLeftCoordinates);
         System.out.println("Window: " + topLeftCoordinates[0] + " " + topLeftCoordinates[1]);
@@ -86,9 +89,9 @@ public class ImageSelectView extends ImageView {
         System.out.println("Current: " + (vanishingPoint.point.y - slope1*(vanishingPoint.point.x)) + " " + topLeft);
         if (vanishingPoint.point.y - slope1*(vanishingPoint.point.x) >= topLeftY) {
             canvas.drawLine(0, vanishingPoint.point.y - slope1 * (vanishingPoint.point.x),
-                    topLeft.point.x, topLeft.point.y, paint);
+                            topLeft.point.x, topLeft.point.y, paint);
         } else {
-            float intersectionX = (vanishingPoint.point.y / slope1) - vanishingPoint.point.x;
+            float intersectionX = vanishingPoint.point.x - (vanishingPoint.point.y / slope1);
             canvas.drawLine(intersectionX, 0, topLeft.point.x, topLeft.point.y, paint);
         }
 
@@ -96,7 +99,7 @@ public class ImageSelectView extends ImageView {
             canvas.drawLine(0, vanishingPoint.point.y - slope2 * (vanishingPoint.point.x),
                             topLeft.point.x, bottomRight.point.y, paint);
         } else {
-            float intersectionX = (vanishingPoint.point.y / slope2) - vanishingPoint.point.x;
+            float intersectionX =  vanishingPoint.point.x + ((bottomRightY - vanishingPoint.point.y) / slope2);
             canvas.drawLine(intersectionX, bottomRightY, topLeft.point.x, bottomRight.point.y, paint);
         }
 
@@ -104,15 +107,15 @@ public class ImageSelectView extends ImageView {
             canvas.drawLine(bottomRightX, vanishingPoint.point.y + slope3*(bottomRightX - vanishingPoint.point.x),
                             bottomRight.point.x, topLeft.point.y, paint);
         } else {
-            float intersectionX = -(vanishingPoint.point.y / slope3) + vanishingPoint.point.x;
-            canvas.drawLine(bottomRight.point.x, topLeft.point.y, intersectionX, topLeftY, paint);
+            float intersectionX =  vanishingPoint.point.x - (vanishingPoint.point.y / slope3);
+            canvas.drawLine(bottomRight.point.x, topLeft.point.y, intersectionX, 0, paint);
         }
 
         if (vanishingPoint.point.y + slope4*(bottomRightX - vanishingPoint.point.x) < bottomRightY) {
             canvas.drawLine(bottomRightX, vanishingPoint.point.y + slope4*(bottomRightX - vanishingPoint.point.x),
                             bottomRight.point.x, bottomRight.point.y, paint);
         } else {
-            float intersectionX = -(vanishingPoint.point.y / slope4) + vanishingPoint.point.x;
+            float intersectionX = vanishingPoint.point.x + ((bottomRightY - vanishingPoint.point.y) / slope4);
             canvas.drawLine(bottomRight.point.x, bottomRight.point.y, intersectionX, bottomRightY, paint);
         }
     }
